@@ -3,6 +3,16 @@ import ctypes
 import math
 from datetime import datetime
 
+#make sure to remove this section for development.
+import keyboard
+
+def quit_app():
+    global running
+    running = False
+keyboard.add_hotkey("esc", quit_app)
+#section end
+
+#I am not sure why I have two of these.
 now = datetime.now()
 
 hour = now.hour
@@ -16,8 +26,36 @@ screen_height = user32.GetSystemMetrics(1)
 
 pygame.init()
 
-# Create borderless window (fullscreen)
+import win32gui
+import win32con
+import win32api
+
+def set_as_wallpaper(hwnd):
+    progman = win32gui.FindWindow("Progman", None)
+
+    # Tell Windows to create WorkerW behind icons
+    win32gui.SendMessageTimeout(progman, 0x052C, 0, 0, win32con.SMTO_NORMAL, 1000)
+
+    def enum_windows_callback(hwnd, windows):
+        if win32gui.FindWindowEx(hwnd, None, "SHELLDLL_DefView", None):
+            workerw = win32gui.FindWindowEx(None, hwnd, "WorkerW", None)
+            windows.append(workerw)
+        return True
+
+    windows = []
+    win32gui.EnumWindows(enum_windows_callback, windows)
+
+    if windows:
+        workerw = windows[0]
+        win32gui.SetParent(hwnd, workerw)
+
+
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.NOFRAME)
+hwnd = pygame.display.get_wm_info()['window']
+set_as_wallpaper(hwnd)
+win32gui.SetWindowLong(hwnd, win32con.GWL_STYLE, win32con.WS_VISIBLE)
+
+
 
 # Set window title
 pygame.display.set_caption("Wallpaper Prototype")
@@ -44,17 +82,33 @@ for i in range(24):
     img = pygame.transform.scale(img, (32 * scale, 32 * scale))
     Fframes.append(img)
 
-
+fake_time_seconds = 0
 Bframe_index = 0
 Blast_update = 0
 Bframe_delay = 250  # milliseconds (4 FPS)
 
 running = True
-
+USE_REAL_TIME = False
 while running:
     current_time = pygame.time.get_ticks()
 
-    now = datetime.now()
+    if USE_REAL_TIME:
+        now = datetime.now()
+    else:
+        total_seconds = fake_time_seconds % (24 * 3600)
+
+        hour = total_seconds // 3600
+        minute = (total_seconds % 3600) // 60
+        second = total_seconds % 60
+
+        class FakeTime:
+            def __init__(self, h, m, s):
+                self.hour = h
+                self.minute = m
+                self.second = s
+                self.microsecond = 0
+
+        now = FakeTime(hour, minute, second)
 
     hour = now.hour
     minute = now.minute
@@ -66,7 +120,7 @@ while running:
         Bframe_index = (Bframe_index + 1) % len(Bframes)
         Blast_update = current_time
     
-    
+            
     screen_rect = screen.get_rect()
     center_x, center_y = screen_rect.center
 
@@ -86,7 +140,8 @@ while running:
         Bcurrent_frame = Bframes_flipped[Bframe_index]  # right side → face left
 
     screen.fill(background_color)
-    screen.blit(Bcurrent_frame, (Bx, By))
+    bee_rect = Bcurrent_frame.get_rect(center=(Bx, By))
+    screen.blit(Bcurrent_frame, bee_rect)
     screen.blit(Fframes[flower_index], flower_rect)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -94,6 +149,10 @@ while running:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
+            if event.key == pygame.K_RIGHT:
+                fake_time_seconds += 60  # +1 minute
+            if event.key == pygame.K_LEFT:
+                fake_time_seconds -= 60  # -1 minute
 
     
     pygame.display.update()
