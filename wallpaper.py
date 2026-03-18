@@ -74,19 +74,25 @@ def set_as_wallpaper(hwnd):
 
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.NOFRAME)
 hwnd = pygame.display.get_wm_info()['window']
+win32gui.SetWindowPos(
+    hwnd,
+    win32con.HWND_BOTTOM,
+    0, 0, 0, 0,
+    win32con.SWP_NOMOVE | win32con.SWP_NOSIZE
+)
 set_as_wallpaper(hwnd)
 
 # Set window title
 pygame.display.set_caption("Wallpaper Prototype")
 
-# Fill with color (test background)
+# Fallback testing
 if Fallback:
     background_color = (255, 0, 255)
     styles = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
     win32gui.SetWindowLong(
         hwnd,
         win32con.GWL_EXSTYLE,
-        styles | win32con.WS_EX_LAYERED
+        styles | win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT | win32con.WS_EX_TOOLWINDOW
     )
 
     win32gui.SetLayeredWindowAttributes(
