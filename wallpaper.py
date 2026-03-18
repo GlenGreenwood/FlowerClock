@@ -12,6 +12,8 @@ def quit_app():
 keyboard.add_hotkey("esc", quit_app)
 #section end
 
+Fallback = True
+
 #I am not sure why I have two of these.
 now = datetime.now()
 
@@ -31,37 +33,73 @@ import win32con
 import win32api
 
 def set_as_wallpaper(hwnd):
+    global Fallback
     progman = win32gui.FindWindow("Progman", None)
 
-    # Tell Windows to create WorkerW behind icons
-    win32gui.SendMessageTimeout(progman, 0x052C, 0, 0, win32con.SMTO_NORMAL, 1000)
+    # Try multiple times (this is the key fix)
+    for _ in range(5):
+        win32gui.SendMessageTimeout(
+            progman,
+            0x052C,
+            0,
+            0,
+            win32con.SMTO_NORMAL,
+            1000
+        )
 
-    def enum_windows_callback(hwnd, windows):
-        if win32gui.FindWindowEx(hwnd, None, "SHELLDLL_DefView", None):
-            workerw = win32gui.FindWindowEx(None, hwnd, "WorkerW", None)
-            windows.append(workerw)
-        return True
+    workerw = None
 
-    windows = []
-    win32gui.EnumWindows(enum_windows_callback, windows)
+    def enum_windows_callback(top_hwnd, _):
+        nonlocal workerw
 
-    if windows:
-        workerw = windows[0]
+        shell = win32gui.FindWindowEx(top_hwnd, None, "SHELLDLL_DefView", None)
+        if shell:
+            # Try to get WorkerW
+            workerw_candidate = win32gui.FindWindowEx(None, top_hwnd, "WorkerW", None)
+            if workerw_candidate:
+                workerw = workerw_candidate
+
+    win32gui.EnumWindows(enum_windows_callback, None)
+
+    if workerw:
+        print("WorkerW found:", workerw)
         win32gui.SetParent(hwnd, workerw)
+        Fallback = False
+    else:
+        print("WorkerW STILL not found")
+        Fallback = True
+        
+
 
 
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.NOFRAME)
 hwnd = pygame.display.get_wm_info()['window']
 set_as_wallpaper(hwnd)
-win32gui.SetWindowLong(hwnd, win32con.GWL_STYLE, win32con.WS_VISIBLE)
-
-
 
 # Set window title
 pygame.display.set_caption("Wallpaper Prototype")
 
 # Fill with color (test background)
-background_color = (120, 150, 180)
+if Fallback:
+    background_color = (255, 0, 255)
+    styles = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+    win32gui.SetWindowLong(
+        hwnd,
+        win32con.GWL_EXSTYLE,
+        styles | win32con.WS_EX_LAYERED
+    )
+
+    win32gui.SetLayeredWindowAttributes(
+        hwnd,
+        win32api.RGB(*background_color),
+        0,
+        win32con.LWA_COLORKEY
+)
+
+else:
+    background_color = (120, 150, 180)
+    win32gui.SetWindowLong(hwnd, win32con.GWL_STYLE, win32con.WS_VISIBLE)
+
 
 scale = 8
 
@@ -88,7 +126,7 @@ Blast_update = 0
 Bframe_delay = 250  # milliseconds (4 FPS)
 
 running = True
-USE_REAL_TIME = False
+USE_REAL_TIME = True
 while running:
     current_time = pygame.time.get_ticks()
 
