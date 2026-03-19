@@ -73,6 +73,7 @@ def set_as_wallpaper(hwnd):
 
 
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.NOFRAME)
+overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
 hwnd = pygame.display.get_wm_info()['window']
 win32gui.SetWindowPos(
     hwnd,
@@ -106,6 +107,18 @@ else:
     background_color = (120, 150, 180)
     win32gui.SetWindowLong(hwnd, win32con.GWL_STYLE, win32con.WS_VISIBLE)
 
+def get_time_tint(hour, minute):
+
+    t = (hour + minute / 60) / 24
+
+    brightness = (math.sin(t * 2 * math.pi - math.pi/2) + 1) / 2
+
+    # Invert for darkness
+    darkness = 1 - brightness
+
+    alpha = int(120 * darkness)
+
+    return (10, 20, 60, alpha)
 
 scale = 8
 
@@ -132,7 +145,7 @@ Blast_update = 0
 Bframe_delay = 250  # milliseconds (4 FPS)
 
 running = True
-USE_REAL_TIME = True
+USE_REAL_TIME = False
 while running:
     current_time = pygame.time.get_ticks()
 
@@ -158,35 +171,71 @@ while running:
     minute = now.minute
     second = now.second
 
+    if keyboard.is_pressed("right"):
+        fake_time_seconds += 60
+
+    if keyboard.is_pressed("left"):
+        fake_time_seconds -= 60
+    
+    #This chooses the flower frame based on the hour.
+
     flower_index = (hour - 1) % 24
+
+    #This makes the bee flap it's wings once per second.
 
     if current_time - Blast_update >= Bframe_delay:
         Bframe_index = (Bframe_index + 1) % len(Bframes)
         Blast_update = current_time
     
+    #This finds the screen center
             
     screen_rect = screen.get_rect()
     center_x, center_y = screen_rect.center
 
-    Bradius = 150
+    #This centers the flower on the screen
 
     flower_rect = Fframes[flower_index].get_rect(center=screen_rect.center)
-    
+
+    #This finds the position the bee should be in based on the minute and the distance from center
+
+    Bradius = 150
+
     Bangle = (minute / 60) * 2 * math.pi
     Bangle -= math.pi / 2
 
     Bx = center_x + math.cos(Bangle) * Bradius
     By = center_y + math.sin(Bangle) * Bradius
     
+# If the bee is on the right it will face left & vice versa
     if Bx < center_x:
         Bcurrent_frame = Bframes[Bframe_index]          # left side → face right
     else:
         Bcurrent_frame = Bframes_flipped[Bframe_index]  # right side → face left
 
+#Semi-transparent underlay
+    if Fallback:
+        tint = get_time_tint(hour, minute)
+
+        overlay.fill(tint)
+        screen.blit(overlay, (0, 0))
+
+#Rendering the backgroud color (or transparency color)
     screen.fill(background_color)
+
+#Finding the center of the bee and rendering it at it's minute location    
     bee_rect = Bcurrent_frame.get_rect(center=(Bx, By))
     screen.blit(Bcurrent_frame, bee_rect)
+
+#Flower rendering
     screen.blit(Fframes[flower_index], flower_rect)
+    
+#Semi-transparent overlay
+    if not Fallback:
+        tint = get_time_tint(hour, minute)
+
+        overlay.fill(tint)
+        screen.blit(overlay, (0, 0))
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
