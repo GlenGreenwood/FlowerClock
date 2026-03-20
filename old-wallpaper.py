@@ -2,21 +2,10 @@ import pygame
 import ctypes
 import math
 from datetime import datetime
-import win32gui
-import win32con
-import win32api
-import socket
-import threading
-import time
-import atexit
-
-
-
-
 
 #make sure to remove this section for development.
 import keyboard
-running = True
+
 def quit_app():
     global running
     running = False
@@ -39,7 +28,9 @@ screen_height = user32.GetSystemMetrics(1)
 
 pygame.init()
 
-
+import win32gui
+import win32con
+import win32api
 
 def set_as_wallpaper(hwnd):
     global Fallback
@@ -55,7 +46,7 @@ def set_as_wallpaper(hwnd):
             win32con.SMTO_NORMAL,
             1000
         )
-    time.sleep(0.1)
+
     workerw = None
 
     def enum_windows_callback(top_hwnd, _):
@@ -73,45 +64,12 @@ def set_as_wallpaper(hwnd):
     if workerw:
         print("WorkerW found:", workerw)
         win32gui.SetParent(hwnd, workerw)
-        #Fallback = False
+        Fallback = False
     else:
         print("WorkerW STILL not found")
         Fallback = True
         
 
-
-exit_socket = None
-
-def listen_for_exit():
-    global running, exit_socket
-
-    exit_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    exit_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    exit_socket.bind(("localhost", 65432))
-    exit_socket.listen(1)
-
-    exit_socket.settimeout(1.0)
-
-    while running:
-        try:
-            conn, _ = exit_socket.accept()
-            with conn:
-                data = conn.recv(1024)
-                if data == b"exit":
-                    running = False
-        except socket.timeout:
-            continue
-        except Exception as e:
-            print(e)
-            break
-
-    try:
-        exit_socket.close()
-    except Exception as e:
-        print(e)
-
-
-threading.Thread(target=listen_for_exit, daemon=True).start()
 
 
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.NOFRAME)
@@ -124,9 +82,6 @@ win32gui.SetWindowPos(
     win32con.SWP_NOMOVE | win32con.SWP_NOSIZE
 )
 set_as_wallpaper(hwnd)
-
-
-
 
 # Set window title
 pygame.display.set_caption("Wallpaper Prototype")
@@ -189,13 +144,11 @@ Bframe_index = 0
 Blast_update = 0
 Bframe_delay = 250  # milliseconds (4 FPS)
 
-
-USE_REAL_TIME = True
-clock = pygame.time.Clock()
-
+running = True
+USE_REAL_TIME = False
 while running:
     current_time = pygame.time.get_ticks()
-    clock.tick(60)
+
     if USE_REAL_TIME:
         now = datetime.now()
     else:
@@ -296,29 +249,5 @@ while running:
 
     
     pygame.display.update()
-
-try:
-    if win32gui.IsWindow(hwnd):
-        win32gui.SetParent(hwnd, 0)
-except Exception as e:
-    print(e)
-
-time.sleep(0.05)
-
-try:
-    ctypes.windll.user32.RedrawWindow(
-        0, None, None,
-        0x0001 | 0x0004 | 0x0400
-    )
-except Exception as e:
-    print(e)
-
-
-try:
-    progman = win32gui.FindWindow("Progman", None)
-    ctypes.windll.user32.InvalidateRect(progman, None, True)
-    win32gui.UpdateWindow(progman)
-except Exception as e:
-    print(e)
 
 pygame.quit()
