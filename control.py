@@ -1,6 +1,7 @@
 import sys
 import subprocess
 import socket
+import os
 from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout
 
 
@@ -28,12 +29,13 @@ class Controller(QWidget):
         self.update_buttons()
 
     def start_app(self):
-        # Only start if not already running
         if self.process is None or self.process.poll() is not None:
-            self.process = subprocess.Popen([sys.executable, "wallpaper.py"])
-        
+            base_path = os.path.dirname(sys.executable)
+            exe_path = os.path.join(base_path, "wallpaperGPT.exe")
+            self.process = subprocess.Popen([exe_path], shell=True)
         self.update_buttons()
 
+    
     def stop_app(self):
         # Try graceful shutdown via socket
         try:
