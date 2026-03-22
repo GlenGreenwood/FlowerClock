@@ -30,9 +30,13 @@ class Controller(QWidget):
 
     def start_app(self):
         if self.process is None or self.process.poll() is not None:
-            base_path = os.path.dirname(sys.executable)
-            exe_path = os.path.join(base_path, "wallpaperGPT.exe")
-            self.process = subprocess.Popen([exe_path], shell=True)
+            #base_path = os.path.dirname(sys.executable)
+            #exe_path = os.path.join(base_path, "render.exe")
+            #self.process = subprocess.Popen([exe_path], shell=True)
+            base_path = os.path.dirname(os.path.abspath(__file__))
+            script_path = os.path.join(base_path, "render.py")
+            self.process = subprocess.Popen([sys.executable, script_path],shell=True)
+            
         self.update_buttons()
 
     
