@@ -65,8 +65,8 @@ class Bee:
     def position(self):
         self.angle = (minute / 60) * 2 * math.pi
         self.angle -= math.pi / 2
-        self.x = center_x + math.cos(bee.angle) * self.radius
-        self.y = center_y + math.sin(bee.angle) * self.radius
+        self.x = center_x + math.cos(self.angle) * self.radius
+        self.y = center_y + math.sin(self.angle) * self.radius
         if self.x < center_x:
             self.current_frame = self.frames[self.frame_index]
         else:
@@ -112,7 +112,7 @@ for i in range(24):
     img = pygame.transform.scale(img, (32 * scale, 32 * scale))
     flower.frames.append(img)
 
-
+bee.current_frame = bee.frames[0]
 
 
 def listen_for_exit():
@@ -223,13 +223,10 @@ while running:
     screen_rect = screen.get_rect()
     center_x, center_y = screen_rect.center
 
-    if Fallback:
-        tint = get_time_tint(hour, minute)
-        overlay.fill(tint)
-        screen.blit(overlay, (0, 0))
 
     screen.fill(background_color)
 #classy bee
+    bee.position()
     bee_rect = bee.current_frame.get_rect(center=(bee.x, bee.y))
     screen.blit(bee.current_frame, bee_rect)
 #classy flower
