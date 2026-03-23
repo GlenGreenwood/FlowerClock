@@ -61,6 +61,19 @@ class Bee:
         self.frame_delay = 250
         self.x = 0
         self.y = 0
+
+    def position(self):
+        self.angle = (minute / 60) * 2 * math.pi
+        self.angle -= math.pi / 2
+        self.x = center_x + math.cos(bee.angle) * self.radius
+        self.y = center_y + math.sin(bee.angle) * self.radius
+        if self.x < center_x:
+            self.current_frame = self.frames[self.frame_index]
+        else:
+            self.current_frame = self.frames_flipped[self.frame_index]
+            
+
+
 bee = Bee(scale)
 
 
@@ -173,9 +186,6 @@ while running:
     clock.tick(60)
 
 
-
-
-
     
     if USE_REAL_TIME:
         now = datetime.now()
@@ -205,31 +215,13 @@ while running:
         fake_time_seconds -= 60
 
 
-
-
-
-
-#classy flower
-    flower.index = (hour - 1) % 24
-#classy bee
+#classy Animate
     if current_time - bee.last_update >= bee.frame_delay:
         bee.frame_index = (bee.frame_index + 1) % len(bee.frames)
         bee.last_update = current_time
 
     screen_rect = screen.get_rect()
     center_x, center_y = screen_rect.center
-#classy flower?
-    flower_rect = flower.frames[flower.index].get_rect(center=screen_rect.center)
-#classy bee
-    bee.radius = 150
-    bee.angle = (minute / 60) * 2 * math.pi
-    bee.angle -= math.pi / 2
-    bee.x = center_x + math.cos(bee.angle) * bee.radius
-    bee.y = center_y + math.sin(bee.angle) * bee.radius
-    if bee.x < center_x:
-        bee.current_frame = bee.frames[bee.frame_index]
-    else:
-        bee.current_frame = bee.frames_flipped[bee.frame_index]
 
     if Fallback:
         tint = get_time_tint(hour, minute)
@@ -241,6 +233,8 @@ while running:
     bee_rect = bee.current_frame.get_rect(center=(bee.x, bee.y))
     screen.blit(bee.current_frame, bee_rect)
 #classy flower
+    flower.index = (hour - 1) % 24
+    flower_rect = flower.frames[flower.index].get_rect(center=screen_rect.center)
     screen.blit(flower.frames[flower.index], flower_rect)
 
 
